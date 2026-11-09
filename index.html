@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<title>Familieplan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Familieplan">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F6F3EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16181B" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="ikon-192.png">
+<style>
+  :root { --bg: #F6F3EE; --kort: #FFFFFF; --tekst: #1F2328; --dempet: #6B6F76; --aksent: #2F5D50; --linje: #E6E1D8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #16181B; --kort: #202327; --tekst: #ECEDEE; --dempet: #9BA0A6; --aksent: #7FC4AE; --linje: #30343A; }
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--tekst);
+    font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  /* Appen inni rammen får ikke vite om hakket og hjem-streken, så rammen holder seg innenfor dem. */
+  iframe { position: fixed; border: 0; background: var(--bg);
+    top: env(safe-area-inset-top); left: env(safe-area-inset-left);
+    right: env(safe-area-inset-right); bottom: env(safe-area-inset-bottom);
+    width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right));
+    height: calc(100% - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .bunn { position: fixed; left: 0; right: 0; bottom: 0; height: env(safe-area-inset-bottom); background: var(--kort); }
+  .oppsett { max-width: 460px; margin: 0 auto; padding: calc(40px + env(safe-area-inset-top)) 20px 40px; }
+  .oppsett img { width: 72px; height: 72px; border-radius: 16px; display: block; margin-bottom: 18px; }
+  h1 { font-size: 26px; margin: 0 0 8px; }
+  p { color: var(--dempet); line-height: 1.45; margin: 0 0 14px; }
+  textarea { width: 100%; box-sizing: border-box; min-height: 96px; padding: 12px; font: inherit; font-size: 15px;
+    border: 1px solid var(--linje); border-radius: 12px; background: var(--kort); color: var(--tekst); }
+  button { margin-top: 12px; width: 100%; padding: 14px; font: inherit; font-weight: 600; border: 0; border-radius: 12px;
+    background: var(--aksent); color: #fff; }
+  .feil { color: #B3261E; margin-top: 10px; }
+  ol { color: var(--dempet); padding-left: 20px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<script>
+(function () {
+  // Lenken til appen (med nøkkel) ligger etter # i adressen. Det som står etter # sendes aldri til
+  // serveren som har denne siden, så nøkkelen ligger bare på telefonen.
+  var LAGER = 'familieplan-lenke';
+  function gyldig(u) { return /^https:\/\/script\.google\.com\/(?:a\/[^/]+\/)?macros\/s\/[\w-]+\/exec\?(?:.*&)?k=\w+/.test(u); }
+  function les(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function skriv(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  var fraAdresse = '';
+  try { fraAdresse = decodeURIComponent(location.hash.slice(1)); } catch (e) {}
+  var lenke = gyldig(fraAdresse) ? fraAdresse : (gyldig(les(LAGER) || '') ? les(LAGER) : '');
+
+  if (lenke) {
+    skriv(LAGER, lenke);
+    if (location.hash.slice(1) !== encodeURIComponent(lenke)) history.replaceState(null, '', '#' + encodeURIComponent(lenke));
+    var f = document.createElement('iframe');
+    f.src = lenke;
+    f.title = 'Familieplan';
+    f.setAttribute('allow', 'clipboard-write');
+    document.body.appendChild(f);
+    var b = document.createElement('div'); b.className = 'bunn'; document.body.appendChild(b);
+    return;
+  }
+
+  var d = document.createElement('div');
+  d.className = 'oppsett';
+  d.innerHTML =
+    '<img src="apple-touch-icon.png" alt="">' +
+    '<h1>Familieplan</h1>' +
+    '<p>Lim inn lenken du bruker til appen i dag – den som slutter på <b>?k=…</b>.</p>' +
+    '<textarea id="lenke" placeholder="https://script.google.com/macros/s/…/exec?k=…" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>' +
+    '<button id="ok">Åpne appen</button>' +
+    '<div class="feil" id="feil" hidden>Det ser ikke ut som Familieplan-lenken. Den skal starte med https://script.google.com/macros/s/ og inneholde ?k=</div>' +
+    '<p style="margin-top:24px">Når appen er åpnet:</p>' +
+    '<ol><li>Trykk Del-knappen i Safari.</li><li>Velg «Legg til på Hjem-skjerm».</li><li>Slå på «Åpne som nettapp» hvis valget finnes, og trykk Legg til.</li></ol>';
+  document.body.appendChild(d);
+  document.getElementById('ok').onclick = function () {
+    var u = document.getElementById('lenke').value.trim();
+    if (!gyldig(u)) { document.getElementById('feil').hidden = false; return; }
+    skriv(LAGER, u);
+    location.hash = encodeURIComponent(u);
+    location.reload();
+  };
+})();
+</script>
+</body>
+</html>
